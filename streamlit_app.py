@@ -37,7 +37,7 @@ def transition_table(prev_chord,next_chord):
         new_next_chord[col] = new_next_chord[col].replace('',new_prev_chord[col].values[0])
     return new_prev_chord, new_next_chord
 
-def model(input_sequence):
+def model(filter, input_sequence):
     finger_data = pd.read_excel('fingering_data.xlsx', keep_default_na=False, index_col=0)
     feature_table = pd.read_excel('feature_table.xlsx', keep_default_na=False, index_col=0)
     transition = []
@@ -118,12 +118,43 @@ def model(input_sequence):
             except:
                 continue
     recommend = pd.DataFrame(row, columns=input_unique+['score']).drop_duplicates().sort_values('score')
-
-    regenerate(recommend, input_unique, finger_data, 1)
-    re = 1
-    if st.button("Regenerate"):
-        re += 1
-        regenerate(recommend, input_unique, finger_data, re)
+    if filter == 'Avoid Barre':
+        for i, r in recommend.iterrows():
+            b = 0
+            for c in input_unique:
+                if feature_table[feature_table['chord']==c][feature_table['pattern']==r[c]]['barre_chord'].values[0] == 1:
+                    b += 1
+            if b!=0:
+                recommend = recommend.drop([i])
+        recommend = recommend.reset_index(drop=True)
+    elif filter == 'Lower Fret Only':
+        for i, r in recommend.iterrows():
+            b = 0
+            for c in input_unique:
+                if feature_table[feature_table['chord']==c][feature_table['pattern']==r[c]]['fret_start'].values[0] > 5:
+                    b += 1
+            if b!=0:
+                recommend = recommend.drop([i])
+        recommend = recommend.reset_index(drop=True)
+    elif filter == 'Less Fingers':
+        finger = ['index','middle','ring','pinky']
+        string_cols = [f+'_finger_string' for f in finger]
+        for i, r in recommend.iterrows():
+            b = 0
+            for c in input_unique:
+                if feature_table[feature_table['chord']==c][feature_table['pattern']==r[c]][string_cols].replace('',np.nan).count(axis=1).values[0] > 3:
+                    b += 1
+            if b!=0:
+                recommend = recommend.drop([i])
+        recommend = recommend.reset_index(drop=True)
+    if len(recommend) == 0:
+        st.text('To play this song you can not '+filter.lower()+', sorry 😭🙏')
+    else:
+        regenerate(recommend, input_unique, finger_data, 1)
+        re = 1
+        if st.button("Regenerate"):
+            re += 1
+            regenerate(recommend, input_unique, finger_data, re)
 
 def regenerate(recommend, input_unique, finger_data, re):
     rows = math.ceil(len(input_unique)/2)
@@ -172,34 +203,34 @@ def plot_fretboard(fig, row, col, index_string, index_fret, middle_string, middl
     if index_string != '':
         if isinstance(index_string,list):
             for i in index_string:
-                data.append([index_fret-0.5, i-1])
+                data.append([index_fret-0.5, abs(6-i)])
                 finger.append(1)
         else:
-            data.append([index_fret-0.5, index_string-1])
+            data.append([index_fret-0.5,  abs(6-index_string)])
             finger.append(1)
     if middle_string != '':
         if isinstance(middle_string,list):
             for i in middle_string:
-                data.append([middle_fret-0.5, i-1])
+                data.append([middle_fret-0.5, abs(6-i)])
                 finger.append(2)
         else:
-            data.append([middle_fret-0.5, middle_string-1])
+            data.append([middle_fret-0.5, abs(6-middle_string)])
             finger.append(2)
     if ring_string != '':
         if isinstance(ring_string,list):
             for i in ring_string:
-                data.append([ring_fret-0.5, i-1])
+                data.append([ring_fret-0.5, abs(6-i)])
                 finger.append(3)
         else:
-            data.append([ring_fret-0.5, ring_string-1])
+            data.append([ring_fret-0.5, abs(6-ring_string)])
             finger.append(3)
     if pinky_string != '':
         if isinstance(pinky_string,list):
             for i in pinky_string:
-                data.append([pinky_fret-0.5, i-1])
+                data.append([pinky_fret-0.5, abs(6-i)])
                 finger.append(4)
         else:
-            data.append([pinky_fret-0.5, pinky_string-1])
+            data.append([pinky_fret-0.5, abs(6-pinky_string)])
             finger.append(4)
 
     df = pd.DataFrame(data, columns=['fret', 'string'])
@@ -224,6 +255,8 @@ error = ''
 if "button_clicked" not in st.session_state:    
     st.session_state.button_clicked = False
 
+filter = st.selectbox("Filter", ["Normal", "Avoid Barre", "Lower Fret Only", "Less Fingers"])
+
 if (st.button("Run", type="primary", on_click=callback) or st.session_state.button_clicked):
     input_sequence = input_sequence.split()
     if len(input_sequence) > 2:
@@ -237,7 +270,7 @@ if (st.button("Run", type="primary", on_click=callback) or st.session_state.butt
             else:
                 input_sequence[i] = convert_chord[input_sequence[i]]
         if error == '':
-            model(input_sequence)
+            model(filter, input_sequence)
         else:
             st.text(error)
     else:
