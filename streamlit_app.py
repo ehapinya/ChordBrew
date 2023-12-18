@@ -1,9 +1,13 @@
 import streamlit as st
+import plotly.graph_objects as go
+from plotly.subplots import make_subplots
+import plotly.express as px
 import pandas as pd
 import numpy as np
 from sklearn.cluster import KMeans
 import json
 import math
+import ast
 
 
 
@@ -114,9 +118,102 @@ def model(input_sequence):
             except:
                 continue
     recommend = pd.DataFrame(row, columns=input_unique+['score']).drop_duplicates().sort_values('score')
+
+    regenerate(recommend, input_unique, finger_data, 1)
+    re = 1
+    if st.button("Regenerate"):
+        re += 1
+        regenerate(recommend, input_unique, finger_data, re)
+
+def regenerate(recommend, input_unique, finger_data, re):
+    rows = math.ceil(len(input_unique)/2)
+    cols = 2 if len(input_unique)>1 else 1
+    fig = make_subplots(rows=rows, cols=cols, subplot_titles=[chord_convert[i] for i in input_unique])
+    fig.update_layout(height=300*rows)
+    count = 0
+    fig.update_yaxes(range=[0, 5], rangemode="tozero", tickvals=[0, 1, 2, 3, 4, 5], ticktext=['E', 'A', 'D', 'G', 'B', 'E'])
+    fret = []
     for i in input_unique:
-        st.dataframe(finger_data[np.multiply(finger_data['chord']==i,finger_data['pattern']==recommend.head(1)[i].values[0]+1)])
-    
+        count += 1
+        row = math.ceil(count/2)
+        col = (count+1)%2+1
+        if re > 1:
+            df = finger_data[np.multiply(finger_data['chord']==i,finger_data['pattern']==recommend.loc[recommend.head(re)[i].index[-1]].values[0]+1)]  
+        else:
+            df = finger_data[np.multiply(finger_data['chord']==i,finger_data['pattern']==recommend.head(1)[i].values[0]+1)]      
+        if df['1'].values[0]!='':
+            index_finger = ast.literal_eval(df['1'].values[0])
+            fret.append(index_finger['fret'])
+        else:
+            index_finger = {'string':'','fret':''}
+        if df['2'].values[0]!='':
+            middle_finger = ast.literal_eval(df['2'].values[0])
+            fret.append(middle_finger['fret'])
+        else:
+            middle_finger = {'string':'','fret':''}
+        if df['3'].values[0]!='':
+            ring_finger = ast.literal_eval(df['3'].values[0])
+            fret.append(ring_finger['fret'])
+        else:
+            ring_finger = {'string':'','fret':''}
+        if df['4'].values[0]!='':
+            pinky_finger = ast.literal_eval(df['4'].values[0])
+            fret.append(pinky_finger['fret'])
+        else:
+            pinky_finger = {'string':'','fret':''}
+
+        plot_fretboard(fig, row, col, index_finger['string'], index_finger['fret'], middle_finger['string'], middle_finger['fret'], ring_finger['string'], ring_finger['fret'], pinky_finger['string'], pinky_finger['fret'])
+    fig.update_xaxes(range=[min(fret)-1, max(fret)], tickmode='linear', tick0=1, dtick=1)
+    st.plotly_chart(fig, theme=None, use_container_width=True)
+
+def plot_fretboard(fig, row, col, index_string, index_fret, middle_string, middle_fret, ring_string, ring_fret, pinky_string, pinky_fret):
+    data = []
+    finger = []
+    if index_string != '':
+        if isinstance(index_string,list):
+            for i in index_string:
+                data.append([index_fret-0.5, i-1])
+                finger.append(1)
+        else:
+            data.append([index_fret-0.5, index_string-1])
+            finger.append(1)
+    if middle_string != '':
+        if isinstance(middle_string,list):
+            for i in middle_string:
+                data.append([middle_fret-0.5, i-1])
+                finger.append(2)
+        else:
+            data.append([middle_fret-0.5, middle_string-1])
+            finger.append(2)
+    if ring_string != '':
+        if isinstance(ring_string,list):
+            for i in ring_string:
+                data.append([ring_fret-0.5, i-1])
+                finger.append(3)
+        else:
+            data.append([ring_fret-0.5, ring_string-1])
+            finger.append(3)
+    if pinky_string != '':
+        if isinstance(pinky_string,list):
+            for i in pinky_string:
+                data.append([pinky_fret-0.5, i-1])
+                finger.append(4)
+        else:
+            data.append([pinky_fret-0.5, pinky_string-1])
+            finger.append(4)
+
+    df = pd.DataFrame(data, columns=['fret', 'string'])
+    fig.add_trace(go.Scatter(
+        x=df["fret"],
+        y=df["string"],
+        mode="markers",
+        marker=dict(color=finger),
+        marker_size=10,showlegend = False,hoverinfo='skip'
+    ), row=row, col=col)    
+
+def callback():
+    st.session_state.button_clicked = True
+
 st.title('ChordBrew 🎸')
 st.text('A chord fingering generator by CN4')
 st.text('-'*100)
@@ -124,10 +221,14 @@ input_sequence =  st.text_input('Input sequence of chords separated by space ex.
 distinct_input = list(set(input_sequence))
 error = ''
 
-if st.button("Run"):
+if "button_clicked" not in st.session_state:    
+    st.session_state.button_clicked = False
+
+if (st.button("Run", type="primary", on_click=callback) or st.session_state.button_clicked):
     input_sequence = input_sequence.split()
-    if len(input_sequence) != 0:
+    if len(input_sequence) > 2:
         convert_chord = json.load(open('convert_chord.json'))
+        chord_convert = { convert_chord[k]:k for k in convert_chord}
         for i, c in enumerate(input_sequence):
             if c not in convert_chord:
                 error = 'Sorry, our model accept only 144 common chords in these following formats: \n\n\tX (Xmajor), Xm (Xminor), X7 (Xdominant7), X5 (power chord),\n\tXdim (Xdiminished), Xdim7 (Xdiminished7), Xaug (Xaugmented),\n\tXsus2 (Xsuspended2), Xsus4 (Xsuspended4), X7 (Xdominant7),\n\tXm7 (Xminor7), X7sus4 (Xdominant7suspended4)'
@@ -140,7 +241,8 @@ if st.button("Run"):
         else:
             st.text(error)
     else:
-        st.text("Please type a sequence of chords in above input box 👆")
+        st.text("Please type a sequence of chords (at least 3) in above input box 👆")
+
 
 st.text('-'*100)
 st.text('This project is a part of CSS400 Project Development, academic year 2023/1.')
