@@ -60,7 +60,7 @@ def model(input_sequence):
         next = transition[0].split()[1]
         for pattern in range(len(chords[prev])):
             current_score = 1000
-            transition_score[pattern] = {'pattern':{prev:pattern}}
+            transition_score[pattern] = {'pattern':{prev:int(pattern)}}
             prev_chord = chords[prev].loc[[pattern]].copy()
             next_chord = chords[next].copy()
             prev_chord_processed, next_chord_processed = transition_table(prev_chord, next_chord)
@@ -79,34 +79,40 @@ def model(input_sequence):
             prev = pair.split()[0]
             next = pair.split()[1]
             for pattern in transition_score:
-                prev_pattern = transition_score[pattern]['pattern'][prev]
-                current_score = 1000
-                prev_chord = chords[prev].loc[[prev_pattern]].copy()
-                if next in transition_score[pattern]['pattern']:
-                    next_pattern = transition_score[pattern]['pattern'][next]
-                    next_chord = chords[next].loc[[next_pattern]].copy()
-                else:
-                    next_chord = chords[next].copy()
-                prev_chord_processed, next_chord_processed = transition_table(prev_chord, next_chord)
-                prev_chord_processed, next_chord_processed = prev_chord_processed.dropna(axis=1), next_chord_processed.dropna(axis=1)
-                kmeans = KMeans(n_clusters=len(next_chord_processed)) 
-                clusters = kmeans.fit_predict(next_chord_processed.values)
-                next_chord_processed['cluster'] = clusters
-                result = next_chord_processed[next_chord_processed['cluster'] == kmeans.predict(prev_chord_processed.values[0].reshape(1, -1))[0]].iloc[:,:-1]
-                score = math.dist(result.values[0],prev_chord_processed.values[0])
-                if score < current_score:
-                    current_score = score
-                    next_result = result.index[0]
-                transition_score[pattern]['pattern'][next] = next_result
-                transition_score[pattern]['score'].append(current_score)
-        results[i] = transition_score
+                try:
+                    prev_pattern = transition_score[pattern]['pattern'][prev]
+                    current_score = 1000
+                    prev_chord = chords[prev].loc[[int(prev_pattern)]].copy()
+                    if next in transition_score[pattern]['pattern']:
+                        next_pattern = transition_score[pattern]['pattern'][next]
+                        next_chord = chords[next].loc[[int(next_pattern)]].copy()
+                    else:
+                        next_chord = chords[next].copy()
+                    prev_chord_processed, next_chord_processed = transition_table(prev_chord, next_chord)
+                    prev_chord_processed, next_chord_processed = prev_chord_processed.dropna(axis=1), next_chord_processed.dropna(axis=1)
+                    kmeans = KMeans(n_clusters=len(next_chord_processed)) 
+                    clusters = kmeans.fit_predict(next_chord_processed.values)
+                    next_chord_processed['cluster'] = clusters
+                    result = next_chord_processed[next_chord_processed['cluster'] == kmeans.predict(prev_chord_processed.values[0].reshape(1, -1))[0]].iloc[:,:-1]
+                    score = math.dist(result.values[0],prev_chord_processed.values[0])
+                    if score < current_score:
+                        current_score = score
+                        next_result = result.index[0]
+                    transition_score[pattern]['pattern'][next] = next_result
+                    transition_score[pattern]['score'].append(current_score)
+                except:
+                    break
+            results[i] = transition_score
     result = []
     row = []
     for i in results:
         for j in results[i]:
             res = results[i][j]
             result.append(res)
-            row.append(list(map(lambda x: res['pattern'][x],input_unique))+[np.mean(res['score'])])
+            try:
+                row.append(list(map(lambda x: res['pattern'][x],input_unique))+[np.mean(res['score'])])
+            except:
+                continue
     recommend = pd.DataFrame(row, columns=input_unique+['score']).drop_duplicates().sort_values('score')
     for i in input_unique:
         st.dataframe(finger_data[np.multiply(finger_data['chord']==i,finger_data['pattern']==recommend.head(1)[i].values[0]+1)])
