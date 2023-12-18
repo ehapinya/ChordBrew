@@ -136,6 +136,7 @@ def model(filter, input_sequence):
             if b!=0:
                 recommend = recommend.drop([i])
         recommend = recommend.reset_index(drop=True)
+        filter += " (some chords require higher fret > 5)"
     elif filter == 'Less Fingers':
         finger = ['index','middle','ring','pinky']
         string_cols = [f+'_finger_string' for f in finger]
@@ -147,6 +148,7 @@ def model(filter, input_sequence):
             if b!=0:
                 recommend = recommend.drop([i])
         recommend = recommend.reset_index(drop=True)
+        filter += " (some chords require all 4 fingers)"
     if len(recommend) == 0:
         st.text('To play this song you can not '+filter.lower()+', sorry 😭🙏')
     else:
