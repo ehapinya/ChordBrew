@@ -37,7 +37,7 @@ def transition_table(prev_chord,next_chord):
         new_next_chord[col] = new_next_chord[col].replace('',new_prev_chord[col].values[0])
     return new_prev_chord, new_next_chord
 
-def model(filter, input_sequence):
+def model(filter, input_sequence, input_unique):
     finger_data = pd.read_excel('fingering_data.xlsx', keep_default_na=False, index_col=0)
     feature_table = pd.read_excel('feature_table.xlsx', keep_default_na=False, index_col=0)
     transition = []
@@ -52,7 +52,6 @@ def model(filter, input_sequence):
         transition.append(prev+' '+next)
         prev = next
     chords = {}
-    input_unique = list(set(input_sequence))
     for c in input_unique:
         chords[c] = feature_table[feature_table['chord']==c].iloc[:,2:].reset_index(drop=True)
     transition_original = transition.copy()
@@ -284,7 +283,11 @@ if (st.button("Run", type="primary", on_click=callback) or st.session_state.butt
             else:
                 input_sequence[i] = convert_chord[input_sequence[i]]
         if error == '':
-            model(filter, input_sequence)
+            input_unique = list(set(input_sequence))
+            if len(input_unique) > 1: 
+                model(filter, input_sequence, input_unique)
+            else:
+                st.text("Please type a sequence of chords (at least 3 and more than 1 chord!) in above input box 👆")
         else:
             st.text(error)
     else:
