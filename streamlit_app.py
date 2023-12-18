@@ -200,6 +200,15 @@ def regenerate(recommend, input_unique, finger_data, re):
 
         plot_fretboard(fig, row, col, index_finger['string'], index_finger['fret'], middle_finger['string'], middle_finger['fret'], ring_finger['string'], ring_finger['fret'], pinky_finger['string'], pinky_finger['fret'])
     fig.update_xaxes(range=[min(fret)-1, max(fret)], tickmode='linear', tick0=1, dtick=1)
+    text = '<span style="color: blue;">●</span>'
+    text += " : Index Finger\t"
+    text += '<span style="color: purple;">●</span>'
+    text += " : Middle Finger\t"
+    text += '<span style="color: orange;">●</span>'
+    text += " : Ring Finger\t"
+    text += '<span style="color: yellow;">●</span>'
+    text += " : Pinky Finger"
+    st.markdown(text, unsafe_allow_html=True)
     st.plotly_chart(fig, theme=None, use_container_width=True)
 
 def plot_fretboard(fig, row, col, index_string, index_fret, middle_string, middle_fret, ring_string, ring_fret, pinky_string, pinky_fret):
