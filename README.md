@@ -15,6 +15,10 @@ Customizable Playability: Recognizing that optimal finger placement may not alwa
 Avoid Barre: Filters out barre chords for a more comfortable play.
 Lower Fret Only: Limits fingerings to lower frets, avoiding higher and potentially challenging positions.
 Less Fingers: Prioritizes fingerings that involve fewer fingers for simplicity.
+4. Streamlit Web Interface
+Accessible Interface: Explore our system through a user-friendly web interface built with Streamlit. Visit our website here to experience seamless chord progression optimization and personalized fingerings.
+http://chordbrew.streamlit.app
+
 
 ## How It Works
 * Input Chord Sequence: Users input a sequence of chords they want to play.
