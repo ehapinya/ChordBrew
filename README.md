@@ -17,8 +17,7 @@ Lower Fret Only: Limits fingerings to lower frets, avoiding higher and potential
 Less Fingers: Prioritizes fingerings that involve fewer fingers for simplicity.
 
 ## How It Works
-
-Input Chord Sequence: Users input a sequence of chords they want to play.
-Optimization Algorithm: The system optimizes finger placements based on transition efficiency, music style preferences, and playability filters.
-Fingering Recommendations: Users receive tailored recommendations for each chord, considering both optimal transition and personalized playing preferences.
-Customized Learning Experience: Our system adapts to user preferences, providing a learning experience that aligns with individual playing styles and comfort levels.
+* Input Chord Sequence: Users input a sequence of chords they want to play.
+* Optimization Algorithm: The system optimizes finger placements based on transition efficiency, music style preferences, and playability filters.
+* Fingering Recommendations: Users receive tailored recommendations for each chord, considering both optimal transition and personalized playing preferences.
+* Customized Learning Experience: Our system adapts to user preferences, providing a learning experience that aligns with individual playing styles and comfort levels.
